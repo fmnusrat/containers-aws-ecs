@@ -107,35 +107,37 @@ jobs:
         fi
 
     - name: Register new ECS task definition
-      id: register-task
-      run: |
-        TASK_DEF=$(cat <<EOF
+  id: register-task
+  run: |
+    TASK_DEF=$(cat <<EOF
+    {
+      "family": "$ECS_SERVICE",
+      "networkMode": "awsvpc",
+      "requiresCompatibilities": ["FARGATE"],
+      "executionRoleArn": "arn:aws:iam::YOUR_ACCOUNT_ID:role/ecsTaskExecutionRole",  # Use correct role ARN here
+      "containerDefinitions": [
         {
-          "family": "$ECS_SERVICE",
-          "networkMode": "awsvpc",
-          "requiresCompatibilities": ["FARGATE"],
-          "executionRoleArn": "arn:aws:iam::YOUR_ACCOUNT_ID:role/ecsTaskExecutionRole",
-          "containerDefinitions": [
+          "name": "$CONTAINER_NAME",
+          "image": "$IMAGE",
+          "memory": 512,
+          "cpu": 256,
+          "essential": true,
+          "portMappings": [
             {
-              "name": "$CONTAINER_NAME",
-              "image": "$IMAGE",
-              "memory": 512,
-              "cpu": 256,
-              "essential": true,
-              "portMappings": [
-                {
-                  "containerPort": 80,
-                  "hostPort": 80
-                }
-              ]
+              "containerPort": 80,
+              "hostPort": 80
             }
           ]
         }
-        EOF
-        )
-        echo "$TASK_DEF" > task-def.json
-        TASK_REVISION=$(aws ecs register-task-definition --cli-input-json file://task-def.json --query 'taskDefinition.revision' --output text)
-        echo "TASK_REVISION=$TASK_REVISION" >> $GITHUB_ENV
+      ]
+    }
+    EOF
+    )
+    echo "$TASK_DEF" > task-def.json
+    TASK_REVISION=$(aws ecs register-task-definition --cli-input-json file://task-def.json --query 'taskDefinition.revision' --output text)
+    echo "TASK_REVISION=$TASK_REVISION" >> $GITHUB_ENV
+
+
 
     - name: Create ECS Service (if not exists)
       run: |
