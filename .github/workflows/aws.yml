@@ -116,7 +116,7 @@ jobs:
           "containerDefinitions": [
             {
               "name": "$CONTAINER_NAME",
-              "image": "$IMAGE",
+              "image": "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG",
               "memory": 512,
               "cpu": 256,
               "essential": true,
