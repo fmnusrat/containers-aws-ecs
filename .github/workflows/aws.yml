@@ -94,6 +94,12 @@ jobs:
           echo "Security Group $SG_EXISTS already exists."
         fi
 
+    - name: Get Default Subnet ID for the VPC
+      run: |
+        SUBNET_ID=$(aws ec2 describe-subnets --filters "Name=vpc-id,Values=$VPC_ID" "Name=default-for-az,Values=true" --query "Subnets[0].SubnetId" --output text)
+        echo "SUBNET_ID=$SUBNET_ID" >> $GITHUB_ENV
+        echo "Using Default Subnet ID: $SUBNET_ID"
+
     - name: Create ECS Cluster (if not exists)
       run: |
         CLUSTER_EXISTS=$(aws ecs describe-clusters --clusters $ECS_CLUSTER --query 'clusters[0].clusterName' --output text 2>/dev/null || echo "notfound")
@@ -112,7 +118,7 @@ jobs:
           "family": "$ECS_SERVICE",
           "networkMode": "awsvpc",
           "requiresCompatibilities": ["FARGATE"],
-          "executionRoleArn": "arn:aws:iam::YOUR_ACCOUNT_ID:role/ecsTaskExecutionRole",  # Use correct role ARN here
+          "executionRoleArn": "arn:aws:iam::602480057045:role/ecsTaskExecutionRole",  # Use correct role ARN here
           "containerDefinitions": [
             {
               "name": "$CONTAINER_NAME",
@@ -139,7 +145,7 @@ jobs:
       run: |
         SERVICE_EXISTS=$(aws ecs describe-services --cluster $ECS_CLUSTER --services $ECS_SERVICE --query 'services[0].serviceName' --output text 2>/dev/null || echo "notfound")
         if [ "$SERVICE_EXISTS" = "notfound" ]; then
-          aws ecs create-service --cluster $ECS_CLUSTER --service-name $ECS_SERVICE --task-definition $ECS_SERVICE --desired-count 1 --launch-type FARGATE --network-configuration "awsvpcConfiguration={subnets=[$SUBNET_ID],securityGroups=[$SECURITY_GROUP_ID],assignPublicIp=ENABLED}"
+          aws ecs create-service --cluster $ECS_CLUSTER --service-name $ECS_SERVICE --task-definition $TASK_DEF --desired-count 1 --launch-type FARGATE --network-configuration "awsvpcConfiguration={subnets=[$SUBNET_ID],securityGroups=[$SECURITY_GROUP_ID],assignPublicIp=ENABLED}"
           echo "ECS Service $ECS_SERVICE created."
         else
           echo "ECS Service $ECS_SERVICE already exists."
@@ -147,9 +153,5 @@ jobs:
 
     - name: Deploy to ECS
       run: |
-        aws ecs update-service --cluster $ECS_CLUSTER --service $ECS_SERVICE --task-definition $ECS_SERVICE
+        aws ecs update-service --cluster $ECS_CLUSTER --service $ECS_SERVICE --task-definition $TASK_DEF
 
-
-    - name: Deploy to ECS
-      run: |
-        aws ecs update-service --cluster $ECS_CLUSTER --service $ECS_SERVICE --task-definition $ECS_SERVICE
