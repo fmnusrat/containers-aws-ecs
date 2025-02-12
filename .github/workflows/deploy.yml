@@ -57,21 +57,6 @@ jobs:
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
         echo "IMAGE=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_ENV
 
-    - name: List ECS Clusters
-      run: |
-        aws ecs list-clusters
-
-    - name: Create ECS Cluster (if not exists)
-      run: |
-        CLUSTER_EXISTS=$(aws ecs describe-clusters --clusters $ECS_CLUSTER --query 'clusters[0].clusterName' --output text 2>/dev/null || echo "notfound")
-        echo "CLUSTER_EXISTS=$CLUSTER_EXISTS"
-        if [ "$CLUSTER_EXISTS" = "notfound" ]; then
-          aws ecs create-cluster --cluster-name $ECS_CLUSTER
-          echo "ECS cluster $ECS_CLUSTER created."
-        else
-          echo "ECS cluster $ECS_CLUSTER already exists."
-        fi
-
     - name: Register new ECS task definition
       id: register-task
       run: |
