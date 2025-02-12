@@ -1,5 +1,4 @@
 name: Deploy to Amazon ECS
-
 on:
   push:
     branches: [ "main" ]
@@ -116,5 +115,3 @@ jobs:
     - name: Deploy to ECS
       run: |
         aws ecs update-service --cluster $ECS_CLUSTER --service $ECS_SERVICE --task-definition $TASK_REVISION
-
-
