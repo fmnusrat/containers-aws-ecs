@@ -46,7 +46,7 @@ jobs:
     - name: Login to Amazon ECR
       id: login-ecr
       uses: aws-actions/amazon-ecr-login@v1
-      
+
     - name: Build, tag, and push image to Amazon ECR
       id: build-image
       env:
@@ -116,4 +116,5 @@ jobs:
     - name: Deploy to ECS
       run: |
         aws ecs update-service --cluster $ECS_CLUSTER --service $ECS_SERVICE --task-definition $TASK_REVISION
+
 
