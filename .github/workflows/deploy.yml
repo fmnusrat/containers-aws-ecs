@@ -30,7 +30,7 @@ on:
   push:
     branches: [ "main" ]
 
-  env:
+env:
   AWS_REGION: ap-south-1                     # Change this to your AWS region
   ECR_REPOSITORY: my-ecr-repo                # Change this to your ECR repository name
   ECS_CLUSTER: my-ecs-cluster                # Change this to your ECS cluster name
