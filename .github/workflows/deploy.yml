@@ -23,97 +23,96 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+    - name: Checkout
+      uses: actions/checkout@v4
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
 
-      - name: Create ECR Repository (if not exists)
-        run: |
-          REPO_EXISTS=$(aws ecr describe-repositories --repository-names $ECR_REPOSITORY --query 'repositories[0].repositoryName' --output text 2>/dev/null || echo "notfound")
-          if [ "$REPO_EXISTS" = "notfound" ]; then
-            aws ecr create-repository --repository-name $ECR_REPOSITORY
-            echo "ECR repository $ECR_REPOSITORY created."
-          else
-            echo "ECR repository $ECR_REPOSITORY already exists."
-          fi
+    - name: Create ECR Repository (if not exists)
+      run: |
+        REPO_EXISTS=$(aws ecr describe-repositories --repository-names $ECR_REPOSITORY --query 'repositories[0].repositoryName' --output text 2>/dev/null || echo "notfound")
+        if [ "$REPO_EXISTS" = "notfound" ]; then
+          aws ecr create-repository --repository-name $ECR_REPOSITORY
+          echo "ECR repository $ECR_REPOSITORY created."
+        else
+          echo "ECR repository $ECR_REPOSITORY already exists."
+        fi
 
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v1
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1
 
-      - name: Build, tag, and push image to Amazon ECR
-        id: build-image
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          IMAGE_TAG: ${{ github.sha }}
-        run: |
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          echo "IMAGE=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_ENV
+    - name: Build, tag, and push image to Amazon ECR
+      id: build-image
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        IMAGE_TAG: ${{ github.sha }}
+      run: |
+        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+        echo "IMAGE=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_ENV
 
-      - name: Debug: List ECS Clusters
-        run: |
-          aws ecs list-clusters
+    - name: List ECS Clusters
+      run: |
+        aws ecs list-clusters
 
-      - name: Create ECS Cluster (if not exists)
-        run: |
-          CLUSTER_EXISTS=$(aws ecs describe-clusters --clusters $ECS_CLUSTER --query 'clusters[0].clusterName' --output text 2>/dev/null || echo "notfound")
-          echo "CLUSTER_EXISTS=$CLUSTER_EXISTS"
-          if [ "$CLUSTER_EXISTS" = "notfound" ]; then
-            aws ecs create-cluster --cluster-name $ECS_CLUSTER
-            echo "ECS cluster $ECS_CLUSTER created."
-          else
-            echo "ECS cluster $ECS_CLUSTER already exists."
-          fi
+    - name: Create ECS Cluster (if not exists)
+      run: |
+        CLUSTER_EXISTS=$(aws ecs describe-clusters --clusters $ECS_CLUSTER --query 'clusters[0].clusterName' --output text 2>/dev/null || echo "notfound")
+        echo "CLUSTER_EXISTS=$CLUSTER_EXISTS"
+        if [ "$CLUSTER_EXISTS" = "notfound" ]; then
+          aws ecs create-cluster --cluster-name $ECS_CLUSTER
+          echo "ECS cluster $ECS_CLUSTER created."
+        else
+          echo "ECS cluster $ECS_CLUSTER already exists."
+        fi
 
-      - name: Register new ECS task definition
-        id: register-task
-        run: |
-          TASK_DEF_JSON=$(cat <<EOF
-          {
-            "family": "$ECS_SERVICE",
-            "networkMode": "awsvpc",
-            "requiresCompatibilities": ["FARGATE"],
-            "executionRoleArn": "arn:aws:iam::602480057045:role/ecsTaskExecutionRole",  # Use correct role ARN here
-            "containerDefinitions": [
-              {
-                "name": "$CONTAINER_NAME",
-                "image": "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG",
-                "memory": 512,
-                "cpu": 256,
-                "essential": true,
-                "portMappings": [
-                  {
-                    "containerPort": 80,
-                    "hostPort": 80
-                  }
-                ]
-              }
-            ]
-          }
-          EOF
-          )
-          echo "$TASK_DEF_JSON" > task-def.json
-          TASK_REVISION=$(aws ecs register-task-definition --cli-input-json file://task-def.json --query 'taskDefinition.revision' --output text)
-          echo "TASK_REVISION=$TASK_REVISION" >> $GITHUB_ENV
+    - name: Register new ECS task definition
+      id: register-task
+      run: |
+        TASK_DEF_JSON=$(cat <<EOF
+        {
+          "family": "$ECS_SERVICE",
+          "networkMode": "awsvpc",
+          "requiresCompatibilities": ["FARGATE"],
+          "executionRoleArn": "arn:aws:iam::602480057045:role/ecsTaskExecutionRole",  # Use correct role ARN here
+          "containerDefinitions": [
+            {
+              "name": "$CONTAINER_NAME",
+              "image": "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG",
+              "memory": 512,
+              "cpu": 256,
+              "essential": true,
+              "portMappings": [
+                {
+                  "containerPort": 80,
+                  "hostPort": 80
+                }
+              ]
+            }
+          ]
+        }
+        EOF
+        )
+        echo "$TASK_DEF_JSON" > task-def.json
+        TASK_REVISION=$(aws ecs register-task-definition --cli-input-json file://task-def.json --query 'taskDefinition.revision' --output text)
+        echo "TASK_REVISION=$TASK_REVISION" >> $GITHUB_ENV
 
-      - name: Create ECS Service (if not exists)
-        run: |
-          SERVICE_EXISTS=$(aws ecs describe-services --cluster $ECS_CLUSTER --services $ECS_SERVICE --query 'services[0].serviceName' --output text 2>/dev/null || echo "notfound")
-          if [ "$SERVICE_EXISTS" = "notfound" ]; then
-            aws ecs create-service --cluster $ECS_CLUSTER --service-name $ECS_SERVICE --task-definition $TASK_REVISION --desired-count 1 --launch-type FARGATE --network-configuration "awsvpcConfiguration={subnets=[$SUBNET_IDS],securityGroups=[$SECURITY_GROUP_ID],assignPublicIp=ENABLED}"
-            echo "ECS Service $ECS_SERVICE created."
-          else
-            echo "ECS Service $ECS_SERVICE already exists."
-          fi
+    - name: Create ECS Service (if not exists)
+      run: |
+        SERVICE_EXISTS=$(aws ecs describe-services --cluster $ECS_CLUSTER --services $ECS_SERVICE --query 'services[0].serviceName' --output text 2>/dev/null || echo "notfound")
+        if [ "$SERVICE_EXISTS" = "notfound" ]; then
+          aws ecs create-service --cluster $ECS_CLUSTER --service-name $ECS_SERVICE --task-definition $TASK_REVISION --desired-count 1 --launch-type FARGATE --network-configuration "awsvpcConfiguration={subnets=[$SUBNET_IDS],securityGroups=[$SECURITY_GROUP_ID],assignPublicIp=ENABLED}"
+          echo "ECS Service $ECS_SERVICE created."
+        else
+          echo "ECS Service $ECS_SERVICE already exists."
+        fi
 
-      - name: Deploy to ECS
-        run: |
-          aws ecs update-service --cluster $ECS_CLUSTER --service $ECS_SERVICE --task-definition $TASK_REVISION
-
+    - name: Deploy to ECS
+      run: |
+        aws ecs update-service --cluster $ECS_CLUSTER --service $ECS_SERVICE --task-definition $TASK_REVISION
