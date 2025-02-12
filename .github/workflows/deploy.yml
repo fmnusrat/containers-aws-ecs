@@ -21,7 +21,7 @@ permissions:
 jobs:
   deploy:
     name: Deploy
-      runs-on: ubuntu-latest
+    runs-on: ubuntu-latest
 
     steps:
     - name: Checkout
@@ -113,4 +113,4 @@ jobs:
 
     - name: Deploy to ECS
       run: |
-        aws ecs update-service --cluster $ECS_CLUSTER --service $ECS_SERVICE --task-definition $TASK_REVISION
+        aws ecs update-service --cluster $ECS_CLUSTER --service $ECS_SERVICE --task-definition $TASK_REVISION 
