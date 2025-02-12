@@ -13,7 +13,7 @@ env:
   VPC_ID: vpc-0939e64691c6586a8              # Change this to your VPC ID
   SECURITY_GROUP_ID: sg-06ed90ac9f1974153    # Change this to your Security Group ID
   SUBNET_IDS: subnet-047b28549eddad8ec,subnet-059136a6f03d0750e,subnet-08d08bb5426cb7759  # Change this to your Subnet IDs
- 
+
 permissions:
   contents: read
 
@@ -56,8 +56,6 @@ jobs:
         docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
         echo "IMAGE=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_ENV
-      outputs:
-        IMAGE: ${{ steps.build-image.outputs.IMAGE }}
 
     - name: Create ECS Cluster (if not exists)
       run: |
@@ -112,4 +110,6 @@ jobs:
 
     - name: Deploy to ECS
       run: |
-        aws ecs update-service --cluster $ECS_CLUSTER --service $ECS_SERVICE --task-definition $TASK_REVISION 
+        aws ecs update-service --cluster $ECS_CLUSTER --service $ECS_SERVICE --task-definition $TASK_REVISION
+
+    
