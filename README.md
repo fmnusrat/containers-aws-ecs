@@ -7,4 +7,4 @@
 ### This is a beginner friendly Project you can add to your portfolio.
 
 
-**Wishing you all the best** ❤ 🤗
+Wishing you all the best❤ 🤗
