@@ -13,8 +13,7 @@ env:
   VPC_ID: vpc-0939e64691c6586a8              # Change this to your VPC ID
   SECURITY_GROUP_ID: sg-06ed90ac9f1974153    # Change this to your Security Group ID
   SUBNET_IDS: subnet-047b28549eddad8ec,subnet-059136a6f03d0750e,subnet-08d08bb5426cb7759  # Change this to your Subnet IDs
-  IMAGE: ${{ steps.build-image.outputs.IMAGE }}   # Add this line to include the IMAGE variable
-
+ 
 permissions:
   contents: read
 
