@@ -30,13 +30,16 @@ on:
   push:
     branches: [ "main" ]
 
-env:
-  AWS_REGION: ap-south-1                    # Change this to your AWS region
+  env:
+  AWS_REGION: ap-south-1                     # Change this to your AWS region
   ECR_REPOSITORY: my-ecr-repo                # Change this to your ECR repository name
   ECS_CLUSTER: my-ecs-cluster                # Change this to your ECS cluster name
   ECS_SERVICE: my-ecs-service                # Change this to your ECS service name
   CONTAINER_NAME: my-container               # Change this to your container name
-  VPC_ID: vpc-0939e64691c6586a8             # Change this to your VPC ID
+  VPC_ID: vpc-0939e64691c6586a8                   # Change this to your VPC ID
+  SECURITY_GROUP_ID: sg-06ed90ac9f1974153         # Change this to your Security Group ID
+  SUBNET_IDS: subnet-047b28549eddad8ec,subnet-059136a6f03d0750e,subnet-08d08bb5426cb7759  # Change this to your Subnet IDs
+  IMAGE: ${{ steps.build-image.outputs.IMAGE }}   # Add this line to include the IMAGE variable
 
 permissions:
   contents: read
@@ -80,21 +83,10 @@ jobs:
         docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
         echo "IMAGE=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_ENV
-
-    - name: Create Security Group (if not exists)
-      run: |
-        SG_EXISTS=$(aws ec2 describe-security-groups --group-names "MyEcsSecurityGroup" --query 'SecurityGroups[0].GroupId' --output text 2>/dev/null || echo "notfound")
-        if [ "$SG_EXISTS" = "notfound" ]; then
-          SG_ID=$(aws ec2 create-security-group --group-name MyEcsSecurityGroup --description "Security group for ECS tasks" --vpc-id $VPC_ID --query 'GroupId' --output text)
-          aws ec2 authorize-security-group-ingress --group-id $SG_ID --protocol tcp --port 80 --cidr 0.0.0.0/0
-          echo "SECURITY_GROUP_ID=$SG_ID" >> $GITHUB_ENV
-          echo "Security Group $SG_ID created."
-        else
-          echo "SECURITY_GROUP_ID=$SG_EXISTS" >> $GITHUB_ENV
-          echo "Security Group $SG_EXISTS already exists."
-        fi
-
-    - name: Get Default Subnet ID for the VPC
+      outputs:
+        IMAGE: ${{ steps.build-image.outputs.IMAGE }}
+      
+       - name: Get Default Subnet ID for the VPC
       run: |
         SUBNET_ID=$(aws ec2 describe-subnets --filters "Name=vpc-id,Values=$VPC_ID" "Name=default-for-az,Values=true" --query "Subnets[0].SubnetId" --output text)
         echo "SUBNET_ID=$SUBNET_ID" >> $GITHUB_ENV
