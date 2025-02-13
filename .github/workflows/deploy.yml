@@ -5,13 +5,14 @@ on:
     branches: [ "main" ]
 
 env:
-  AWS_REGION: ap-south-1                      # Change this to your AWS region
-  ECR_REPOSITORY: my-ecr-repo                 # Change this to your ECR repository name
-  ECS_CLUSTER: my-ecs-cluster                 # Change this to your ECS cluster name
-  ECS_SERVICE: my-ecs-service                 # Change this to your ECS service name
-  CONTAINER_NAME: my-container                # Change this to your container name
-  VPC_ID: vpc-0939e64691c6586a8               # Change this to your VPC ID
-  SECURITY_GROUP_ID: sg-06ed90ac9f1974153     # Change this to your Security Group ID
+  AWS_REGION: ap-south-1                              # Change this to your AWS region
+  ECR_REPOSITORY: my-ecr-repo                         # Change this to your ECR repository name
+  ECS_CLUSTER: my-ecs-cluster                         # Change this to your ECS cluster name
+  ECS_SERVICE: my-ecs-service                         # Change this to your ECS service name
+  ECS_TASK_DEFINITION: ".aws/ecs-task-def.json"       # Change this to your ECS task definition name
+  CONTAINER_NAME: my-container                        # Change this to your container name
+  VPC_ID: vpc-0939e64691c6586a8                       # Change this to your VPC ID
+  SECURITY_GROUP_ID: sg-06ed90ac9f1974153             # Change this to your Security Group ID
   SUBNET_IDS: subnet-047b28549eddad8ec,subnet-059136a6f03d0750e,subnet-08d08bb5426cb7759  # Change this to your Subnet IDs
 
 permissions:
@@ -21,6 +22,7 @@ jobs:
   deploy:
     name: Deploy
     runs-on: ubuntu-latest
+    environment: production
 
     steps:
     - name: Checkout
@@ -32,16 +34,6 @@ jobs:
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: ${{ env.AWS_REGION }}
-
-    - name: Create ECR Repository (if not exists)
-      run: |
-        REPO_EXISTS=$(aws ecr describe-repositories --repository-names $ECR_REPOSITORY --query 'repositories[0].repositoryName' --output text 2>/dev/null || echo "notfound")
-        if [ "$REPO_EXISTS" = "notfound" ]; then
-          aws ecr create-repository --repository-name $ECR_REPOSITORY
-          echo "ECR repository $ECR_REPOSITORY created."
-        else
-          echo "ECR repository $ECR_REPOSITORY already exists."
-        fi
 
     - name: Login to Amazon ECR
       id: login-ecr
@@ -55,20 +47,16 @@ jobs:
       run: |
         docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-        echo "image-uri=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_ENV
-      outputs:
-        image-uri: ${{ steps.build-image.outputs.image-uri }}
-
+        echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+      
     - name: Fill in the new image ID in the Amazon ECS task definition
       id: task-def
       uses: aws-actions/amazon-ecs-render-task-definition@v1
       with:
-        task-definition: task-definition.json
+        task-definition: ${{ env.TASK_DEFINITION }}
         container-name: ${{ env.CONTAINER_NAME }}
-        image: ${{ steps.build-image.outputs.image-uri }}
-      outputs:
-        task-definition: ${{ steps.task-def.outputs.task-definition }}
-
+        image: ${{ steps.build-image.outputs.image }}
+      
     - name: Deploy Amazon ECS task definition
       uses: aws-actions/amazon-ecs-deploy-task-definition@v2
       with:
@@ -76,17 +64,3 @@ jobs:
         service: ${{ env.ECS_SERVICE }}
         cluster: ${{ env.ECS_CLUSTER }}
         wait-for-service-stability: true
-
-    - name: Create ECS Service (if not exists)
-      run: |
-        SERVICE_EXISTS=$(aws ecs describe-services --cluster $ECS_CLUSTER --services $ECS_SERVICE --query 'services[0].serviceName' --output text 2>/dev/null || echo "notfound")
-        if [ "$SERVICE_EXISTS" = "notfound" ]; then
-          aws ecs create-service --cluster $ECS_CLUSTER --service-name $ECS_SERVICE --task-definition $TASK_REVISION --desired-count 1 --launch-type FARGATE --network-configuration "awsvpcConfiguration={subnets=[$SUBNET_IDS],securityGroups=[$SECURITY_GROUP_ID],assignPublicIp=ENABLED}"
-          echo "ECS Service $ECS_SERVICE created."
-        else
-          echo "ECS Service $ECS_SERVICE already exists."
-        fi
-
-    - name: Deploy to ECS
-      run: |
-        aws ecs update-service --cluster $ECS_CLUSTER --service $ECS_SERVICE --task-definition $TASK_REVISION
