@@ -47,21 +47,29 @@ jobs:
       run: |
         docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-        echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_ENV
         echo "IMAGE=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_ENV
-      
-    - name: Fill in the new image ID in the Amazon ECS task definition
-      id: task-def
-      uses: aws-actions/amazon-ecs-render-task-definition@v1
-      with:
-        task-definition: ${{ env.ECS_TASK_DEFINITION }}
-        container-name: ${{ env.CONTAINER_NAME }}
-        image: ${{ env.IMAGE }}
-      
+
+    - name: Fetch the existing task definition
+      id: fetch-task-def
+      run: |
+        aws ecs describe-task-definition --task-definition ${{ env.ECS_TASK_DEFINITION }} > task-def.json
+
+    - name: Update the task definition with the new image
+      id: update-task-def
+      run: |
+        jq --arg IMAGE "$IMAGE" '.taskDefinition.containerDefinitions[0].image = $IMAGE' task-def.json > new-task-def.json
+
+    - name: Register the updated task definition
+      id: register-task-def
+      run: |
+        aws ecs register-task-definition --cli-input-json file://new-task-def.json
+      outputs:
+        task-definition-arn: ${{ steps.register-task-def.outputs.taskDefinition.taskDefinitionArn }}
+
     - name: Deploy Amazon ECS task definition
       uses: aws-actions/amazon-ecs-deploy-task-definition@v2
       with:
-        task-definition: ${{ env.ECS_TASK_DEFINITION }}
+        task-definition: ${{ steps.register-task-def.outputs.task-definition-arn }}
         service: ${{ env.ECS_SERVICE }}
         cluster: ${{ env.ECS_CLUSTER }}
         wait-for-service-stability: true
