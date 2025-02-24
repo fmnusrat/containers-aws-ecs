@@ -62,14 +62,13 @@ jobs:
     - name: Register the updated task definition
       id: register-task-def
       run: |
-        aws ecs register-task-definition --cli-input-json file://new-task-def.json
-      outputs:
-        task-definition-arn: ${{ steps.register-task-def.outputs.taskDefinition.taskDefinitionArn }}
+        TASK_DEF_ARN=$(aws ecs register-task-definition --cli-input-json file://new-task-def.json --query 'taskDefinition.taskDefinitionArn' --output text)
+        echo "TASK_DEF_ARN=$TASK_DEF_ARN" >> $GITHUB_ENV
 
     - name: Deploy Amazon ECS task definition
       uses: aws-actions/amazon-ecs-deploy-task-definition@v2
       with:
-        task-definition: ${{ steps.register-task-def.outputs.task-definition-arn }}
+        task-definition: ${{ env.TASK_DEF_ARN }}
         service: ${{ env.ECS_SERVICE }}
         cluster: ${{ env.ECS_CLUSTER }}
         wait-for-service-stability: true
