@@ -1,0 +1,20 @@
+{
+    "executionRoleArn": "arn:aws:iam::602480057045:role/ecsTaskExecutionRole",
+    "containerDefinitions": [{
+      "name": "my-container",
+      "image": "602480057045.dkr.ecr.ap-south-1.amazonaws.com/my-ecr-repo",
+      "memory": "3072",
+      "essential": true,
+      "portMappings": [{
+        "containerPort": 80,
+        "protocol": "tcp"
+      }]
+    }],
+    "volumes": [],
+    "requiresCompatibilities": ["FARGATE"],
+    "networkMode": "awsvpc",
+    "placementConstraints": [],
+    "family": "ecs-task-def",
+    "memory": "3072",
+    "cpu": "1024"
+  }
