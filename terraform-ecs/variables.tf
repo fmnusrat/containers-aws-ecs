@@ -5,7 +5,7 @@ variable "aws_region" {
 
 variable "ecr_registry" {
   description = "The ECR registry URL"
-  default     = "123456789012.dkr.ecr.ap-south-1.amazonaws.com"
+  default     = "602480057045.dkr.ecr.ap-south-1.amazonaws.com"
 }
 
 variable "ecr_repository" {
@@ -62,5 +62,10 @@ variable "execution_role_arn" {
 variable "task_role_arn" {
   description = "The ARN of the task role"
   default     = "arn:aws:iam::123456789012:role/ecsTaskRole"
+}
+
+variable "log_group" {
+  description = "The name of the CloudWatch log group"
+  default     = "/ecs/ecs-task-def"
 }
 
