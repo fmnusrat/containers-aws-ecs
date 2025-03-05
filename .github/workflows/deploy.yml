@@ -9,7 +9,7 @@ env:
   ECR_REPOSITORY: my-ecr-repo                         # Change this to your ECR repository name
   ECS_CLUSTER: my-ecs-cluster                         # Change this to your ECS cluster name
   ECS_SERVICE: my-ecs-service                         # Change this to your ECS service name
-  ECS_TASK_DEFINITION: task_definition.json         # Change this to your ECS task definition name
+  ECS_TASK_DEFINITION: task_definition.json           # Change this to your ECS task definition name
   CONTAINER_NAME: my-container                        # Change this to your container name
   VPC_ID: vpc-0939e64691c6586a8                       # Change this to your VPC ID
   SECURITY_GROUP_ID: sg-06ed90ac9f1974153             # Change this to your Security Group ID
@@ -35,6 +35,30 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: ${{ env.AWS_REGION }}
 
+    - name: Set up Terraform
+      uses: hashicorp/setup-terraform@v1
+
+    - name: Initialize Terraform
+      run: terraform init
+      working-directory: ./terraform-ecs
+
+    - name: Apply Terraform configuration
+      run: terraform apply -auto-approve
+      working-directory: ./terraform-ecs
+      env:
+        TF_VAR_aws_region: ${{ env.AWS_REGION }}
+        TF_VAR_ecr_repository: ${{ env.ECR_REPOSITORY }}
+        TF_VAR_ecs_cluster_name: ${{ env.ECS_CLUSTER }}
+        TF_VAR_ecs_service_name: ${{ env.ECS_SERVICE }}
+        TF_VAR_ecs_task_family: ecs-task-def
+        TF_VAR_container_name: ${{ env.CONTAINER_NAME }}
+        TF_VAR_vpc_id: ${{ env.VPC_ID }}
+        TF_VAR_security_group_id: ${{ env.SECURITY_GROUP_ID }}
+        TF_VAR_subnet_ids: ${{ env.SUBNET_IDS }}
+        TF_VAR_execution_role_arn: ${{ secrets.EXECUTION_ROLE_ARN }}
+        TF_VAR_task_role_arn: ${{ secrets.TASK_ROLE_ARN }}
+        TF_VAR_log_group: /ecs/ecs-task-def
+
     - name: Login to Amazon ECR
       id: login-ecr
       uses: aws-actions/amazon-ecr-login@v1
@@ -47,21 +71,20 @@ jobs:
       run: |
         docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-        echo "IMAGE=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+        echo "IMAGE=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_ENV
 
-    
     - name: Fill in the new image ID in the Amazon ECS task definition
       id: task-def
       uses: aws-actions/amazon-ecs-render-task-definition@v1.1.2
       with:
         task-definition: ${{ env.ECS_TASK_DEFINITION }}
         container-name: ${{ env.CONTAINER_NAME }}
-        image: ${{ steps.build-image.outputs.image }}
+        image: ${{ env.IMAGE }}
 
     - name: Deploy Amazon ECS task definition
       uses: aws-actions/amazon-ecs-deploy-task-definition@v2
       with:
-        task-definition: ${{ steps.task-def.outputs.task-definition}}
+        task-definition: ${{ steps.task-def.outputs.task-definition }}
         service: ${{ env.ECS_SERVICE }}
         cluster: ${{ env.ECS_CLUSTER }}
         wait-for-service-stability: true
