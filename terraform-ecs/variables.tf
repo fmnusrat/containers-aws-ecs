@@ -18,12 +18,12 @@ variable "image_tag" {
   default     = "latest"
 }
 
-variable "ecs_cluster_name" {
+variable "ecs_cluster" {
   description = "The name of the ECS cluster"
   default     = "my-ecs-cluster"
 }
 
-variable "ecs_service_name" {
+variable "ecs_service" {
   description = "The name of the ECS service"
   default     = "my-ecs-service"
 }

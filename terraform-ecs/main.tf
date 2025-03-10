@@ -14,7 +14,7 @@ data "template_file" "task_definition" {
   template = file("./task_definition.json")
 
   vars = {
-    ecr_registry     = aws_ecr_repository.ecr_repo.repository_url
+    ecr_registry     = var.ecr_registry
     ecr_repository   = var.ecr_repository
     image_tag        = var.image_tag
     execution_role_arn = var.execution_role_arn
@@ -38,7 +38,7 @@ resource "aws_ecs_task_definition" "ecs_task" {
 }
 
 resource "aws_ecs_service" "ecs_service" {
-  name            = var.ecs_service_name
+  name            = var.ecs_service
   cluster         = aws_ecs_cluster.ecs_cluster.id
   task_definition = aws_ecs_task_definition.ecs_task.arn
   desired_count   = 1
