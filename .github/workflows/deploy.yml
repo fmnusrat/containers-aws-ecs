@@ -41,7 +41,7 @@ jobs:
         VAR_ecr_registry: "602480057045.dkr.ecr.ap-south-1.amazonaws.com"
         VAR_ecr_repository: "my-ecr-repo"
         VAR_image_tag: "latest"
-        VAR_ecs_cluster_name: "my-ecs-cluster"
+        VAR_ecs_cluster: "my-ecs-cluster"
         VAR_ecs_service_name: "my-ecs-service"
         VAR_ecs_task_family: "ecs-task-def"
         VAR_container_name: "my-container"
