@@ -2,15 +2,15 @@ provider "aws" {
   region = var.aws_region
 }
 
-resource "aws_ecr_repository" "my-ecr-repo" {
+resource "aws_ecr_repository" "my_ecr_repo" {
   name = var.ecr_repository
 }
 
-resource "aws_ecs_cluster" "my-ecs-cluster" {
+resource "aws_ecs_cluster" "my_ecs_cluster" {
   name = var.ecs_cluster
 }
 
-resource "aws_ecs_task_definition" "ecs-task-def" {
+resource "aws_ecs_task_definition" "ecs_task_def" {
   family                   = var.ecs_task_family
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
@@ -45,10 +45,10 @@ resource "aws_ecs_task_definition" "ecs-task-def" {
   ])
 }
 
-resource "aws_ecs_service" "my-ecs-service" {
+resource "aws_ecs_service" "my_ecs_service" {
   name            = var.ecs_service
-  cluster         = aws_ecs_cluster.ecs_cluster.id
-  task_definition = aws_ecs_task_definition.task_role.arn
+  cluster         = aws_ecs_cluster.my_ecs_cluster.id
+  task_definition = aws_ecs_task_definition.ecs_task_def.arn
   desired_count   = 1
   launch_type     = "FARGATE"
 
