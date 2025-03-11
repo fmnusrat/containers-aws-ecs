@@ -10,7 +10,7 @@ resource "aws_ecs_cluster" "my-ecs-cluster" {
   name = var.ecs_cluster
 }
 
-resource "aws_ecs_task_definition" "ecs_task" {
+resource "aws_ecs_task_definition" "ecs-task-def" {
   family                   = var.ecs_task_family
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
@@ -45,10 +45,10 @@ resource "aws_ecs_task_definition" "ecs_task" {
   ])
 }
 
-resource "aws_ecs_service" "ecs_service" {
+resource "aws_ecs_service" "my-ecs-service" {
   name            = var.ecs_service
   cluster         = aws_ecs_cluster.ecs_cluster.id
-  task_definition = aws_ecs_task_definition.ecs_task.arn
+  task_definition = aws_ecs_task_definition.task_role.arn
   desired_count   = 1
   launch_type     = "FARGATE"
 
