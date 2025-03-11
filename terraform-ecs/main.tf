@@ -34,7 +34,30 @@ resource "aws_ecs_task_definition" "ecs_task" {
   execution_role_arn       = var.execution_role_arn
   task_role_arn            = var.task_role_arn
 
-  container_definitions = data.template_file.task_definition.rendered
+  container_definitions = jsonencode([
+    {
+      name      = var.container_name
+      image     = "${var.ecr_registry}/${var.ecr_repository}:${var.image_tag}"
+      essential = true
+      memory    = 512
+      cpu       = 256
+      portMappings = [
+        {
+          containerPort = 80
+          hostPort      = 80
+          protocol      = "tcp"
+        }
+      ]
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          awslogs-group         = var.log_group
+          awslogs-region        = var.aws_region
+          awslogs-stream-prefix = "ecs"
+        }
+      }
+    }
+  ])
 }
 
 resource "aws_ecs_service" "ecs_service" {
