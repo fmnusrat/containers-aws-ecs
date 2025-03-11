@@ -37,22 +37,7 @@ jobs:
       id: apply
       run: terraform apply -auto-approve -json > plan.json
       working-directory: ./terraform-ecs
-      env:
-        TF_VAR_aws_region: ${{ secrets.AWS_REGION }}
-        TF_VAR_ecr_registry: "602480057045.dkr.ecr.ap-south-1.amazonaws.com"
-        TF_VAR_ecr_repository: "my-ecr-repo"
-        TF_VAR_image_tag: "latest"
-        TF_VAR_ecs_cluster: "my-ecs-cluster"
-        TF_VAR_ecs_service: "my-ecs-service"
-        TF_VAR_ecs_task_family: "ecs-task-def"
-        TF_VAR_container_name: "my-container"
-        TF_VAR_vpc_id: "vpc-0939e64691c6586a8"
-        TF_VAR_security_group_id: "sg-06ed90ac9f1974153"
-        TF_VAR_subnet_ids: '["subnet-047b28549eddad8ec", "subnet-059136a6f03d0750e", "subnet-08d08bb5426cb7759"]'
-        TF_VAR_execution_role_arn: "arn:aws:iam::123456789012:role/ecsTaskExecutionRole"
-        TF_VAR_task_role_arn: "arn:aws:iam::123456789012:role/ecsTaskRole"
-        TF_VAR_log_group: "/ecs/ecs-task-def"
-
+      
     - name: Parse Terraform output
       id: parse
       run: |
