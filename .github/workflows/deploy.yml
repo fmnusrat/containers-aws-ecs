@@ -34,23 +34,31 @@ jobs:
       working-directory: ./terraform-ecs
 
     - name: Apply Terraform configuration
-      run: terraform apply -auto-approve
+      id: apply
+      run: terraform apply -auto-approve -json > plan.json
       working-directory: ./terraform-ecs
       env:
-        VAR_aws_region: ${{ secrets.AWS_REGION }}
-        VAR_ecr_registry: "602480057045.dkr.ecr.ap-south-1.amazonaws.com"
-        VAR_ecr_repository: "my-ecr-repo"
-        VAR_image_tag: "latest"
-        VAR_ecs_cluster: "my-ecs-cluster"
-        VAR_ecs_service_name: "my-ecs-service"
-        VAR_ecs_task_family: "ecs-task-def"
-        VAR_container_name: "my-container"
-        VAR_vpc_id: "vpc-0939e64691c6586a8"
-        VAR_security_group_id: "sg-06ed90ac9f1974153"
-        VAR_subnet_ids: '["subnet-047b28549eddad8ec", "subnet-059136a6f03d0750e", "subnet-08d08bb5426cb7759"]'
-        VAR_execution_role_arn: "arn:aws:iam::123456789012:role/ecsTaskExecutionRole"
-        VAR_task_role_arn: "arn:aws:iam::123456789012:role/ecsTaskRole"
-        VAR_log_group: "/ecs/ecs-task-def"
+        TF_VAR_aws_region: ${{ secrets.AWS_REGION }}
+        TF_VAR_ecr_registry: "602480057045.dkr.ecr.ap-south-1.amazonaws.com"
+        TF_VAR_ecr_repository: "my-ecr-repo"
+        TF_VAR_image_tag: "latest"
+        TF_VAR_ecs_cluster: "my-ecs-cluster"
+        TF_VAR_ecs_service: "my-ecs-service"
+        TF_VAR_ecs_task_family: "ecs-task-def"
+        TF_VAR_container_name: "my-container"
+        TF_VAR_vpc_id: "vpc-0939e64691c6586a8"
+        TF_VAR_security_group_id: "sg-06ed90ac9f1974153"
+        TF_VAR_subnet_ids: '["subnet-047b28549eddad8ec", "subnet-059136a6f03d0750e", "subnet-08d08bb5426cb7759"]'
+        TF_VAR_execution_role_arn: "arn:aws:iam::123456789012:role/ecsTaskExecutionRole"
+        TF_VAR_task_role_arn: "arn:aws:iam::123456789012:role/ecsTaskRole"
+        TF_VAR_log_group: "/ecs/ecs-task-def"
+
+    - name: Parse Terraform output
+      id: parse
+      run: |
+        echo "ECS_CLUSTER_ID=$(jq -r '.values.root_module.resources[] | select(.type=="aws_ecs_cluster") | .values.id' plan.json)" >> $GITHUB_ENV
+        echo "ECS_TASK_DEFINITION_ARN=$(jq -r '.values.root_module.resources[] | select(.type=="aws_ecs_task_definition") | .values.arn' plan.json)" >> $GITHUB_ENV
+        echo "ECS_SERVICE_NAME=$(jq -r '.values.root_module.resources[] | select(.type=="aws_ecs_service") | .values.name' plan.json)" >> $GITHUB_ENV
 
     - name: Login to Amazon ECR
       id: login-ecr
@@ -70,7 +78,7 @@ jobs:
       id: task-def
       uses: aws-actions/amazon-ecs-render-task-definition@v1.1.2
       with:
-        task-definition: ${{ env.ECS_TASK_DEFINITION }}
+        task-definition: ${{ env.ECS_TASK_DEFINITION_ARN }}
         container-name: ${{ env.CONTAINER_NAME }}
         image: ${{ env.IMAGE }}
 
@@ -78,6 +86,6 @@ jobs:
       uses: aws-actions/amazon-ecs-deploy-task-definition@v2
       with:
         task-definition: ${{ steps.task-def.outputs.task-definition }}
-        service: ${{ env.ECS_SERVICE }}
-        cluster: ${{ env.ECS_CLUSTER }}
+        service: ${{ env.ECS_SERVICE_NAME }}
+        cluster: ${{ env.ECS_CLUSTER_ID }}
         wait-for-service-stability: true
