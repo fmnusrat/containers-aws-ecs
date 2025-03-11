@@ -3,9 +3,9 @@ output "ecs_cluster_id" {
 }
 
 output "ecs_task_definition_arn" {
-  value = aws_ecs_task_definition.ecs_task.arn
+  value = aws_ecs_task_definition.task_role.arn
 }
 
-output "ecs_service_name" {
+output "ecs_service" {
   value = aws_ecs_service.ecs_service.name
 }
