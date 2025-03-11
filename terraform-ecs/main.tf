@@ -47,8 +47,8 @@ resource "aws_ecs_task_definition" "ecs_task_def" {
 
 resource "aws_ecs_service" "my_ecs_service" {
   name            = var.ecs_service
-  cluster         = aws_ecs_cluster.my_ecs_cluster.id
-  task_definition = aws_ecs_task_definition.ecs_task_def.arn
+  ecs_cluster_id  = aws_ecs_cluster.my_ecs_cluster.id
+  ecs_task_definition_arn = aws_ecs_task_definition.ecs_task_def.arn
   desired_count   = 1
   launch_type     = "FARGATE"
 
