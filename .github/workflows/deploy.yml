@@ -38,13 +38,6 @@ jobs:
       run: terraform apply -auto-approve -json > plan.json
       working-directory: ./terraform-ecs
       
-    - name: Parse Terraform output
-      id: parse
-      run: |
-        echo "ECS_CLUSTER_ID=$(jq -r '.values.root_module.resources[] | select(.type=="aws_ecs_cluster") | .values.id' plan.json)" >> $GITHUB_ENV
-        echo "ECS_TASK_DEFINITION_ARN=$(jq -r '.values.root_module.resources[] | select(.type=="aws_ecs_task_definition") | .values.arn' plan.json)" >> $GITHUB_ENV
-        echo "ECS_SERVICE_NAME=$(jq -r '.values.root_module.resources[] | select(.type=="aws_ecs_service") | .values.name' plan.json)" >> $GITHUB_ENV
-
     - name: Login to Amazon ECR
       id: login-ecr
       uses: aws-actions/amazon-ecr-login@v1
