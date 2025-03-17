@@ -9,7 +9,7 @@ env:
   ECR_REPOSITORY: my-ecr-repo                         # Change this to your ECR repository name
   ECS_CLUSTER: my-ecs-cluster                         # Change this to your ECS cluster name
   ECS_SERVICE: my-ecs-service                         # Change this to your ECS service name
-  ECS_TASK_DEFINITION: task_definition.json         # Change this to your ECS task definition name
+  ECS_TASK_DEFINITION: task_definition.json           # Change this to your ECS task definition name
   CONTAINER_NAME: my-container                        # Change this to your container name
   VPC_ID: vpc-0939e64691c6586a8                       # Change this to your VPC ID
   SECURITY_GROUP_ID: sg-06ed90ac9f1974153             # Change this to your Security Group ID
@@ -35,6 +35,42 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: ${{ env.AWS_REGION }}
 
+    - name: Set up Terraform
+      uses: hashicorp/setup-terraform@v1
+      with:
+        terraform_version: 1.6.0
+
+    - name: Initialize Terraform
+      run: terraform init
+      working-directory: ./terraform-ecs
+
+    - name: Apply Terraform configuration
+      id: apply
+      run: terraform apply -auto-approve -json > plan.json
+      working-directory: ./terraform-ecs
+      env:
+        TF_VAR_aws_region: ${{ secrets.AWS_REGION }}
+        TF_VAR_ecr_registry: "602480057045.dkr.ecr.ap-south-1.amazonaws.com"
+        TF_VAR_ecr_repository: "my-ecr-repo"
+        TF_VAR_image_tag: "latest"
+        TF_VAR_ecs_cluster: "my-ecs-cluster"
+        TF_VAR_ecs_service: "my-ecs-service"
+        TF_VAR_ecs_task_family: "ecs-task-def"
+        TF_VAR_container_name: "my-container"
+        TF_VAR_vpc_id: "vpc-0939e64691c6586a8"
+        TF_VAR_security_group_id: "sg-06ed90ac9f1974153"
+        TF_VAR_subnet_ids: '["subnet-047b28549eddad8ec", "subnet-059136a6f03d0750e", "subnet-08d08bb5426cb7759"]'
+        TF_VAR_execution_role_arn: "arn:aws:iam::123456789012:role/ecsTaskExecutionRole"
+        TF_VAR_task_role_arn: "arn:aws:iam::123456789012:role/ecsTaskRole"
+        TF_VAR_log_group: "/ecs/ecs-task-def"
+
+    - name: Parse Terraform output
+      id: parse
+      run: |
+        echo "ECS_CLUSTER_ID=$(jq -r '.values.root_module.resources[] | select(.type=="aws_ecs_cluster") | .values.id' plan.json)" >> $GITHUB_ENV
+        echo "ECS_TASK_DEFINITION_ARN=$(jq -r '.values.root_module.resources[] | select(.type=="aws_ecs_task_definition") | .values.arn' plan.json)" >> $GITHUB_ENV
+        echo "ECS_SERVICE_NAME=$(jq -r '.values.root_module.resources[] | select(.type=="aws_ecs_service") | .values.name' plan.json)" >> $GITHUB_ENV
+
     - name: Login to Amazon ECR
       id: login-ecr
       uses: aws-actions/amazon-ecr-login@v1
@@ -47,21 +83,20 @@ jobs:
       run: |
         docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-        echo "IMAGE=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+        echo "IMAGE=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_ENV
 
-    
     - name: Fill in the new image ID in the Amazon ECS task definition
       id: task-def
       uses: aws-actions/amazon-ecs-render-task-definition@v1.1.2
       with:
-        task-definition: ${{ env.ECS_TASK_DEFINITION }}
+        task-definition: ${{ env.ECS_TASK_DEFINITION_ARN }}
         container-name: ${{ env.CONTAINER_NAME }}
-        image: ${{ steps.build-image.outputs.image }}
+        image: ${{ env.IMAGE }}
 
     - name: Deploy Amazon ECS task definition
       uses: aws-actions/amazon-ecs-deploy-task-definition@v2
       with:
-        task-definition: ${{ steps.task-def.outputs.task-definition}}
-        service: ${{ env.ECS_SERVICE }}
-        cluster: ${{ env.ECS_CLUSTER }}
+        task-definition: ${{ steps.task-def.outputs.task-definition }}
+        service: ${{ env.ECS_SERVICE_NAME }}
+        cluster: ${{ env.ECS_CLUSTER_ID }}
         wait-for-service-stability: true
