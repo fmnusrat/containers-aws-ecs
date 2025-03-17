@@ -56,12 +56,12 @@ variable "subnet_ids" {
 
 variable "execution_role_arn" {
   description = "The ARN of the execution role"
-  default     = "arn:aws:iam::123456789012:role/ecsTaskExecutionRole"
+  default     = "arn:aws:iam::602480057045:role/ecsTaskExecutionRole"
 }
 
 variable "task_role_arn" {
   description = "The ARN of the task role"
-  default     = "arn:aws:iam::123456789012:role/ecsTaskRole"
+  default     = "arn:aws:iam::602480057045:role/ecsTaskRole"
 }
 
 variable "log_group" {
