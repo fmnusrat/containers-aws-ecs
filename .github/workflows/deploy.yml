@@ -24,7 +24,7 @@ jobs:
     
     - name: Run Terraform (Only if required)
       run: |
-         cd terraform
+         cd terraform-ecs
          terraform init
          terraform apply -auto-approve
 
