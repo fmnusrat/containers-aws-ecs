@@ -24,8 +24,8 @@ resource "aws_ecs_task_definition" "ecs_task_def" {
       name      = var.container_name
       image     = "${var.ecr_registry}/${var.ecr_repository}:latest"
       essential = true
-      memory    = 512
-      cpu       = 256
+      memory    = 1024
+      cpu       = 512
       portMappings = [
         {
           containerPort = 80
