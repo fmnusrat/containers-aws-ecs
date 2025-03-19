@@ -30,12 +30,23 @@ jobs:
       id: build-image
       env:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-        IMAGE_TAG: ${{ github.sha }}
+        IMAGE_TAG: ${{ github.sha }}  # Using commit SHA as the tag
         ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
       run: |
+        # Build and push the Docker image to ECR with the commit SHA as the tag
         docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+        # Output the image URI for the next steps
         echo "IMAGE=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+    - name: Update ECS Task Definition with New Image
+      id: update-task-definition
+      run: |
+        # Replace the image tag in the ECS task definition with the new image tag
+        IMAGE=${{ steps.build-image.outputs.IMAGE }}
+        sed -i 's|"<image_placeholder>"|'"$IMAGE"'|' task-definition.json
+        # Register the new task definition
+        aws ecs register-task-definition --cli-input-json file://task-definition.json
 
     - name: ECS Deployment Step
       uses: aws-actions/amazon-ecs-deploy-task-definition@v2
@@ -44,3 +55,4 @@ jobs:
         service: ${{ secrets.ECS_SERVICE }}
         cluster: ${{ secrets.ECS_CLUSTER }}
         wait-for-service-stability: true
+
