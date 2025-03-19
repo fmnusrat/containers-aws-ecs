@@ -4,8 +4,8 @@
         {
             "name": "my-container",
             "image": "602480057045.dkr.ecr.ap-south-1.amazonaws.com/my-ecr-repo:latest",
-            "cpu": 256,
-            "memory": 512,
+            "cpu": 512,
+            "memory": 1024,
             "portMappings": [
                 {
                     "containerPort": 80,
