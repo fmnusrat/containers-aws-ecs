@@ -36,6 +36,9 @@ jobs:
         docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
         echo "IMAGE=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+    - name: Debug - List files
+      run: ls -l
      
     - name: ECS Deployment Step 
       uses: aws-actions/amazon-ecs-deploy-task-definition@v2
