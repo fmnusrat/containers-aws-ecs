@@ -3,7 +3,7 @@
     "containerDefinitions": [
         {
             "name": "my-container",
-            "image": "602480057045.dkr.ecr.ap-south-1.amazonaws.com/my-ecr-repo:latest",
+            "image": "<image_placeholder>",
             "cpu": 512,
             "memory": 1024,
             "portMappings": [
