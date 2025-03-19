@@ -39,6 +39,18 @@ jobs:
  
     - name: Create task definition file
       run: echo '${{ secrets.ECS_TASK_DEFINITION }}' > task-definition.json
+
+    - name: Register ECS Task Definition
+      run: |
+        aws ecs register-task-definition \
+          --cli-input-json file://task-definition.json
+
+    - name: Update ECS Service
+      run: |
+        aws ecs update-service \
+          --cluster ${{ secrets.ECS_CLUSTER }} \
+          --service ${{ secrets.ECS_SERVICE }} \
+          --task-definition ecs-task-def:latest
           
     - name: Debug - List files
       run: ls -l
