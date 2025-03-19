@@ -1,5 +1,5 @@
 {
-    "taskDefinitionArn": "arn:aws:ecs:ap-south-1:602480057045:task-definition/ecs-task-def:7",
+    "taskDefinitionArn": "arn:aws:ecs:ap-south-1:602480057045:task-definition/ecs-task-def:10",
     "containerDefinitions": [
         {
             "name": "my-container",
@@ -32,7 +32,6 @@
     "taskRoleArn": "arn:aws:iam::602480057045:role/ecsTaskRole",
     "executionRoleArn": "arn:aws:iam::602480057045:role/ecsTaskExecutionRole",
     "networkMode": "awsvpc",
-    "revision": 7,
     "volumes": [],
     "status": "ACTIVE",
     "requiresAttributes": [
@@ -71,6 +70,7 @@
     ],
     "cpu": "1024",
     "memory": "3072",
-    "registeredAt": "2025-03-17T20:41:23.804000+00:00",
-    "registeredBy": "arn:aws:iam::602480057045:root"
+    "registeredAt": "2025-03-19T21:46:11.913Z",
+    "registeredBy": "arn:aws:iam::602480057045:root",
+    "tags": []
 }
